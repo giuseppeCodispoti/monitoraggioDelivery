@@ -399,58 +399,58 @@ def run():
                 }
             )
     
-        with col_grafico:
+        #with col_grafico:
             # Escludo la riga TOTALE dal grafico (altrimenti falsa la scala delle barre)
-            dati_grafico = report[report["AT"] != "TOTALE"].copy()
-            dati_grafico = dati_grafico[dati_grafico["Impresa"] != ""]
+            #dati_grafico = report[report["AT"] != "TOTALE"].copy()
+            #dati_grafico = dati_grafico[dati_grafico["Impresa"] != ""]
     
-            def colore_barra(val):
-                if val >= 75:
-                    return "#63BE7B"   # verde
-                elif val >= 70:
-                    return "#FFEB84"   # giallo
-                else:
-                    return "#FFC7CE"   # rosso
+           # def colore_barra(val):
+                #if val >= 75:
+                    #return "#63BE7B"   # verde
+                #elif val >= 70:
+                    #return "#FFEB84"   # giallo
+               # else:
+                   # return "#FFC7CE"   # rosso
     
-            dati_grafico["Colore"] = dati_grafico["Resa Totale %"].apply(colore_barra)
+           # dati_grafico["Colore"] = dati_grafico["Resa Totale %"].apply(colore_barra)
     
-            fig = px.bar(
-                dati_grafico,
-                x="Resa Totale %",
-                y="Impresa",
-                orientation="h",
-                title="Resa Totale % per Impresa",
-                text="Resa Totale %"
-            )
-            fig.update_traces(
-                marker_color=dati_grafico["Colore"],
-                texttemplate="%{text:.1f}%",
-                textposition="inside",
-                textfont=dict(color="black", size=12)
-            )
-            fig.update_layout(
-                height=(len(report) + 1) * 35 + 3,
-                xaxis_title="",
-                yaxis_title="",
-                margin=dict(l=0, r=0, t=40, b=0),
-                plot_bgcolor="white",
-                xaxis=dict(
-                    showgrid=True,
-                    gridcolor="#D9D9D9",
-                    gridwidth=1,
-                    showline=True,
-                    linecolor="#B0B0B0"
-                ),
-                yaxis=dict(
-                    showgrid=True,
-                    gridcolor="#D9D9D9",
-                    gridwidth=1,
-                    showline=True,
-                    linecolor="#B0B0B0"
-                )
-            )
+           # fig = px.bar(
+                #dati_grafico,
+                #x="Resa Totale %",
+                #y="Impresa",
+                #orientation="h",
+                #title="Resa Totale % per Impresa",
+                #text="Resa Totale %"
+            #)
+            #fig.update_traces(
+                #marker_color=dati_grafico["Colore"],
+               # texttemplate="%{text:.1f}%",
+                #textposition="inside",
+               # textfont=dict(color="black", size=12)
+           # )
+            #fig.update_layout(
+               # height=(len(report) + 1) * 35 + 3,
+                #xaxis_title="",
+                #yaxis_title="",
+                #margin=dict(l=0, r=0, t=40, b=0),
+               # plot_bgcolor="white",
+                #xaxis=dict(
+                 #   showgrid=True,
+                  #  gridcolor="#D9D9D9",
+                  #  gridwidth=1,
+                   # showline=True,
+                  #  linecolor="#B0B0B0"
+               # ),
+               # yaxis=dict(
+                  #  showgrid=True,
+                   # gridcolor="#D9D9D9",
+                   # gridwidth=1,
+                   # showline=True,
+                   # linecolor="#B0B0B0"
+              #  )
+          #  )
     
-            st.plotly_chart(fig, use_container_width=True)
+          #  st.plotly_chart(fig, use_container_width=True)
     
         # -----------------------------------
         # EXCEL
