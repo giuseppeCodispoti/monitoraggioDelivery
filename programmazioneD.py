@@ -25,7 +25,7 @@ orario_caricamento = orario_locale.strftime(
 
 # Logo
 
-logo_path = r"C:\Users\g.codispoti\AppData\Local\Programs\Python\Python313\logo.png"
+logo_path = os.path.join(os.path.dirname(__file__), "logo.png")
 
 logo = Image.open(logo_path)
 col1, col2, col3 = st.columns([3, 3, 3])
