@@ -8,9 +8,9 @@ scelta = st.selectbox(
     ]
 )
 
-if scelta == "programmazioneD":
-    import programmazione
-    programmazione.run()
+if scelta == "programmazione":
+    import programmazioneD
+    programmazioneD.run()
 
 elif scelta == "resa":
     import resa
