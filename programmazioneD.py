@@ -13,7 +13,9 @@ def run():
     layout="centered"
 )
 
-# Data e ora
+# ---------------------------------------
+# DATA E ORA
+# ---------------------------------------
 
 rome_tz = pytz.timezone("Europe/Rome")
 
@@ -23,9 +25,14 @@ orario_caricamento = orario_locale.strftime(
     "%d-%m-%Y ore %H:%M"
 )
 
-# Logo
+
+# LOGO
 
 logo_path = os.path.join(os.path.dirname(__file__), "logo.png")
+
+# ---------------------------------------
+# TITOLO (centrato, in cima)
+# ---------------------------------------
 
 logo = Image.open(logo_path)
 col1, col2, col3 = st.columns([3, 3, 3])
