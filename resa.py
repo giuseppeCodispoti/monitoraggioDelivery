@@ -8,7 +8,8 @@ from datetime import datetime
 import pytz
 import os
 
-st.set_page_config(
+def run():
+    st.set_page_config(
     page_title="Resa del Giorno",
     layout="wide"
 )
