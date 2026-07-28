@@ -6,6 +6,8 @@ from io import BytesIO
 from PIL import Image
 from datetime import datetime
 import pytz
+import os
+
 
 def run():
     st.set_page_config(
