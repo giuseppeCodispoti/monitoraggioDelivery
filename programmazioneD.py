@@ -1,0 +1,245 @@
+import pandas as pd
+import plotly.express as px
+import streamlit as st
+import sys
+from io import BytesIO
+from PIL import Image
+from datetime import datetime
+import pytz
+
+
+st.set_page_config(
+    page_title="Programmazione delivery",
+    layout="centered"
+)
+
+# Data e ora
+
+rome_tz = pytz.timezone("Europe/Rome")
+
+orario_locale = datetime.now(rome_tz)
+
+orario_caricamento = orario_locale.strftime(
+    "%d-%m-%Y ore %H:%M"
+)
+
+# Logo
+
+logo_path = r"C:\Users\g.codispoti\AppData\Local\Programs\Python\Python313\logo.png"
+
+logo = Image.open(logo_path)
+col1, col2, col3 = st.columns([3, 3, 3])
+
+with col2:
+    st.image(logo, width=500)
+
+st.markdown(
+    f"""
+    <h4 style='text-align:center;'>
+    🎯 Giacenza delivery 🎯
+    <br>
+    <strong>{orario_caricamento}</strong>
+    </h4>
+    """,
+    unsafe_allow_html=True
+)
+
+# Upload file
+
+file_giacenza = st.file_uploader(
+    "Carica il file Excel di giacenza",
+    type=["xlsx", "xls"]
+)
+
+# Elaborazione
+
+if file_giacenza is not None:
+
+    df = pd.read_excel(file_giacenza)
+
+    # Distretto
+
+    df["distretto"] = (
+        df["Codice Centrale"]
+        .astype(str)
+        .str[:3]
+    )
+
+    df["at"] = df["distretto"].map({
+        "964": "Bagnato",
+        "965": "Votano",
+        "966": "Bagnato"
+    }).fillna("Carbone")
+
+    # Impresa
+
+    df["Impresa"] = (
+        df["Impresa"]
+        .fillna("Sociale")
+    )
+
+    # FTTH True/False
+
+    df["FTTH"] = (
+        df["FTTH"]
+        .astype(str)
+        .str.upper()
+    )
+
+    # Giacenza Totale
+
+    pivot_totale = (
+        df.groupby(
+            ["at", "Impresa"]
+        )
+        .size()
+        .reset_index(
+            name="Giacenza Totale"
+        )
+    )
+
+    # OL FTTH
+
+    pivot_ftth = (
+        df[
+            df["FTTH"].isin(
+                ["TRUE", "SI", "1"]
+            )
+        ]
+        .groupby(
+            ["at", "Impresa"]
+        )
+        .size()
+        .reset_index(
+            name="OL FTTH"
+        )
+    )
+
+    # OL NO FTTH
+
+    pivot_no_ftth = (
+        df[
+            ~df["FTTH"].isin(
+                ["TRUE", "SI", "1"]
+            )
+        ]
+        .groupby(
+            ["at", "Impresa"]
+        )
+        .size()
+        .reset_index(
+            name="OL NO FTTH"
+        )
+    )
+
+    # Merge
+
+    pivot = pivot_totale.merge(
+        pivot_ftth,
+        on=["at", "Impresa"],
+        how="left"
+    )
+
+    pivot = pivot.merge(
+        pivot_no_ftth,
+        on=["at", "Impresa"],
+        how="left"
+    )
+
+    pivot = pivot.fillna(0)
+
+    # Ordinamento
+
+    pivot_sorted = (
+        pivot
+        .sort_values(
+            by=["at", "Impresa"]
+        )
+        .reset_index(drop=True)
+    )
+
+    # Mostra AT una sola volta
+
+    pivot_sorted["at"] = (
+        pivot_sorted.groupby("at")["at"]
+        .transform(
+            lambda x: x.mask(
+                x.index != x.index[0],
+                ""
+            )
+        )
+    )
+
+    # Totale finale
+
+    totale = pd.DataFrame(
+        [[
+            "Totale complessivo",
+            "",
+
+            pivot["Giacenza Totale"].sum(),
+
+            pivot["OL FTTH"].sum(),
+
+            pivot["OL NO FTTH"].sum()
+        ]],
+        columns=[
+            "at",
+            "Impresa",
+            "Giacenza Totale",
+            "OL FTTH",
+            "OL NO FTTH"
+        ]
+    )
+
+    pivot_formattata = pd.concat(
+        [pivot_sorted, totale],
+        ignore_index=True
+    )
+
+    # Tabella
+
+
+    st.dataframe(
+        pivot_formattata,
+        use_container_width=True
+    )
+
+    # Export Excel
+
+    output = BytesIO()
+
+    with pd.ExcelWriter(
+        output,
+        engine="xlsxwriter"
+    ) as writer:
+
+        pivot_formattata.to_excel(
+            writer,
+            index=False,
+            sheet_name="Programmazione"
+        )
+
+    output.seek(0)
+
+    st.download_button(
+        label="📥 Scarica Excel",
+        data=output,
+        file_name="programmazione.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+    # Grafico a torta
+
+    st.subheader(
+        " 📦 Distribuzione Giacenza per Impresa 📦"
+    )
+
+    df_pie = pivot_sorted.dropna(subset=["Impresa", "Giacenza Totale"])
+    fig = px.pie(df_pie,
+             names="Impresa",
+             values="Giacenza Totale",
+             title="Distribuzione Giacenza per Impresa")
+    st.plotly_chart(fig)
+
+    
