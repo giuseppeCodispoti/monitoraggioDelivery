@@ -7,8 +7,8 @@ from PIL import Image
 from datetime import datetime
 import pytz
 
-
-st.set_page_config(
+def run():
+    st.set_page_config(
     page_title="Programmazione delivery",
     layout="centered"
 )
