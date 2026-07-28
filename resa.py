@@ -235,15 +235,15 @@ def run():
         # -----------------------------------
     
         report["Resa Totale %"] = (
-            report["Produttivi"] / report["Giacenti"] * 100
+            report["Giacenti"] / report["Produttivi"] * 100
         ).round(1)
     
         report["Resa FTTH %"] = (
-            report["Chiusi FTTH"] / report["Giacenti FTTH"].replace(0, np.nan) * 100
+            report["Giacenti FTTH"] / report["Chiusi FTTH"].replace(0, np.nan) * 100
         ).round(1)
     
         report["Resa NO FTTH %"] = (
-            report["Chiusi NO FTTH"] / report["Giacenti NO FTTH"].replace(0, np.nan) * 100
+            report["Giacenti NO FTTH"] / report["Chiusi NO FTTH"].replace(0, np.nan) * 100
         ).round(1)
     
         report = report.fillna(0)
