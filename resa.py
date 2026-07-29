@@ -85,7 +85,7 @@ def run():
 
         data_riferimento= (df_g["Data Inizio Appuntamento"]
         .max()
-        .normalize()
+                           .normalize()
         )
 
             
