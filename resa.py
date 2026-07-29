@@ -83,9 +83,13 @@ def run():
         df_g = pd.read_excel(file_giacenza)
         df_c = pd.read_excel(file_chiusura)
 
+
+        df_g["Data Inizio Appuntamento"] = pd.to_datetime(
+            df_g["Data Inizio Appuntamento"], errors="coerce"
+        )
         data_riferimento= (df_g["Data Inizio Appuntamento"]
+        .dt.date
         .max()
-                           .normalize()
         )
 
             
@@ -220,7 +224,7 @@ def run():
                 .eq("15 - In Lavorazione")
             )
             &
-            (df_g["Data Inizio Appuntamento"].dt.normalize==data_riferimento
+            (df_g["Data Inizio Appuntamento"].dt.date == data_riferimento
             )
             ]
             .groupby(["AT", "Impresa"])
