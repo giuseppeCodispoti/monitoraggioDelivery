@@ -283,15 +283,15 @@ def run():
         # -----------------------------------
     
         report["Resa Totale %"] = (
-            report["Giacenti"] / report["Produttivi"] * 100
+            report["Produttivi"] / report["Giacenti"].replace(0, np.nan) * 100
         ).round(1)
-    
+
         report["Resa FTTH %"] = (
-            report["Giacenti FTTH"] / report["Chiusi FTTH"].replace(0, np.nan) * 100
+            report["Chiusi FTTH"] / report["Giacenti FTTH"].replace(0, np.nan) * 100
         ).round(1)
-    
+
         report["Resa NO FTTH %"] = (
-            report["Giacenti NO FTTH"] / report["Chiusi NO FTTH"].replace(0, np.nan) * 100
+            report["Chiusi NO FTTH"] / report["Giacenti NO FTTH"].replace(0, np.nan) * 100
         ).round(1)
     
         report = report.fillna(0)
@@ -466,9 +466,9 @@ def run():
 
             # Calcolo resa
             dati_grafico["Resa Totale %"] = (
-                dati_grafico["Giacenti"]
+                dati_grafico["Produttivi"]
                 /
-                dati_grafico["Produttivi"].replace(0, np.nan)
+                dati_grafico["Giacenti"].replace(0, np.nan)
                 * 100
             ).round(1)
 
