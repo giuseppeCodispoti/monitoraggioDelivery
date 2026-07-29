@@ -118,13 +118,15 @@ def run():
         df_g["Data Inizio Appuntamento"] = pd.to_datetime(
             df_g["Data Inizio Appuntamento"], errors="coerce"
         )
-        data_riferimento= (df_c["Data Inizio Appuntamento"]
-        .dt.date
-        .max()
+        df_c["Data Inizio Appuntamento"] = pd.to_datetime(
+            df_c["Data Inizio Appuntamento"], errors="coerce"
+        )
+        data_riferimento = (
+            df_c["Data Inizio Appuntamento"]
+            .dt.date
+            .max()
         )
 
-            
-    
         df_g["Impresa"] = (
             df_g["Impresa"]
             .fillna("Sociale")
