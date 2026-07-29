@@ -58,6 +58,25 @@ def run():
     if file_giacenza is not None:
     
         df = pd.read_excel(file_giacenza)
+        tipologie_escluse = [
+            "PREDISPOSIZIONE BRETELLE OTTICHE",
+            "FTTC LA: PERMUTA+LA+COLLAUDO+OUTSOURCING",
+            "FTTC LA: PERMUTA+LA+COLLAUDO",
+            "FTTH: SOSTITUZIONE ONT",
+            "CDN HV-COL",
+            "FTTC LA: PERMUTA+LA+INST PRODOT",
+            "INSTALLAZIONE APPARATI CATALYST",
+            "FTTC LA: PERMUTA+LA+INST PRODOT+OUTSOURCING",
+            "FTTC-FTTE TZ:PERM SECONDARIA A DAC S INT",
+            "VGW POTS+ADSL PERMUTA",
+            "VGW POTS PERMUTA"]
+
+        df= df[~df["Tipologia Lavoro"]
+                    .astype(str)
+                    .str.strip()
+                    .isin(tipologie_escluse)
+        ]
+
     
         # Distretto
     
