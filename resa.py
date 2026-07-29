@@ -83,11 +83,42 @@ def run():
         df_g = pd.read_excel(file_giacenza)
         df_c = pd.read_excel(file_chiusura)
 
+        # -----------------------------------
+        # ESCLUSIONE TIPOLOGIE LAVORO
+        # -----------------------------------
+
+        tipologie_escluse = [
+            "PREDISPOSIZIONE BRETELLE OTTICHE",
+            "FTTC LA: PERMUTA+LA+COLLAUDO+OUTSOURCING",
+            "FTTC LA: PERMUTA+LA+COLLAUDO",
+            "FTTH: SOSTITUZIONE ONT",
+            "CDN HV-COL",
+            "FTTC LA: PERMUTA+LA+INST PRODOT",
+            "INSTALLAZIONE APPARATI CATALYST",
+            "FTTC LA: PERMUTA+LA+INST PRODOT+OUTSOURCING",
+            "FTTC-FTTE TZ:PERM SECONDARIA A DAC S INT",
+            "VGW POTS+ADSL PERMUTA",
+            "VGW POTS PERMUTA"
+        ]
+
+        df_g = df_g[
+            ~df_g["Tipologia Lavoro"]
+            .astype(str)
+            .str.strip()
+            .isin(tipologie_escluse)
+        ]
+
+        df_c = df_c[
+            ~df_c["Tipologia Lavoro"]
+            .astype(str)
+            .str.strip()
+            .isin(tipologie_escluse)
+        ]
 
         df_g["Data Inizio Appuntamento"] = pd.to_datetime(
             df_g["Data Inizio Appuntamento"], errors="coerce"
         )
-        data_riferimento= (df_g["Data Inizio Appuntamento"]
+        data_riferimento= (df_c["Data Inizio Appuntamento"]
         .dt.date
         .max()
         )
@@ -217,14 +248,14 @@ def run():
         # -----------------------------------
     
         lavorazione = (
-            df_g[(
-                df_g["Stato"]
+            df_c[(
+                df_c["Stato"]
                 .astype(str)
                 .str.strip()
                 .eq("15 - In Lavorazione")
             )
             &
-            (df_g["Data Inizio Appuntamento"].dt.date == data_riferimento
+            (df_c["Data Inizio Appuntamento"].dt.date == data_riferimento
             )
             ]
             .groupby(["AT", "Impresa"])
@@ -416,20 +447,55 @@ def run():
             )
     
         with col_grafico:
-            # Escludo la riga TOTALE dal grafico (altrimenti falsa la scala delle barre)
-            dati_grafico = report[report["AT"] != "TOTALE"].copy()
-            dati_grafico = dati_grafico[dati_grafico["Impresa"] != ""]
-    
+            # Escludo la riga TOTALE
+            dati_grafico = report[
+                report["AT"] != "TOTALE"
+            ].copy()
+
+            # Raggruppo SOLO per Impresa
+            dati_grafico = (
+                dati_grafico
+                .groupby("Impresa", as_index=False)
+                .agg({
+                    "Giacenti": "sum",
+                    "Produttivi": "sum"
+                })
+            )
+
+            # Calcolo resa
+            dati_grafico["Resa Totale %"] = (
+                dati_grafico["Giacenti"]
+                /
+                dati_grafico["Produttivi"].replace(0, np.nan)
+                * 100
+            ).round(1)
+
+            # Tolgo eventuali infiniti
+            dati_grafico = dati_grafico.replace(
+                [np.inf, -np.inf],
+                0
+            )
+
+            # Ordino per resa
+            dati_grafico = dati_grafico.sort_values(
+                by="Resa Totale %",
+                ascending=True
+            )
+
+            # Colori
             def colore_barra(val):
                 if val >= 75:
-                    return "#63BE7B"   # verde
-                elif val >= 70:
-                    return "#FFEB84"   # giallo
+                    return "#63BE7B"
+                elif val >= 70.5:
+                    return "#FFEB84"
                 else:
-                    return "#FFC7CE"   # rosso
-    
-            dati_grafico["Colore"] = dati_grafico["Resa Totale %"].apply(colore_barra)
-    
+                    return "#FFC7CE"
+
+            dati_grafico["Colore"] = (
+                dati_grafico["Resa Totale %"]
+                .apply(colore_barra)
+            )
+
             fig = px.bar(
                 dati_grafico,
                 x="Resa Totale %",
@@ -438,35 +504,24 @@ def run():
                 title="Resa Totale % per Impresa",
                 text="Resa Totale %"
             )
+
             fig.update_traces(
                 marker_color=dati_grafico["Colore"],
                 texttemplate="%{text:.1f}%",
-                textposition="inside",
-                textfont=dict(color="black", size=12)
+                textposition="inside"
             )
+
             fig.update_layout(
-                height=(len(report) + 1) * 35 + 3,
+                height=700,
                 xaxis_title="",
                 yaxis_title="",
-                margin=dict(l=0, r=0, t=40, b=0),
-                plot_bgcolor="white",
-                xaxis=dict(
-                    showgrid=True,
-                    gridcolor="#D9D9D9",
-                    gridwidth=1,
-                    showline=True,
-                    linecolor="#B0B0B0"
-                ),
-                yaxis=dict(
-                    showgrid=True,
-                    gridcolor="#D9D9D9",
-                    gridwidth=1,
-                    showline=True,
-                    linecolor="#B0B0B0"
-                )
+                margin=dict(l=0, r=0, t=40, b=0)
             )
-    
-            st.plotly_chart(fig, use_container_width=True)
+
+            st.plotly_chart(
+                fig,
+                use_container_width=True
+            )
     
         # -----------------------------------
         # EXCEL
