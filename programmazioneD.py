@@ -106,6 +106,19 @@ def run():
             .isin(jobtype_esclusi)
         ]
 
+        # Esclusione WR per Codice Progetto Nazionale
+
+        progetto_nazionale_esclusi = [
+            "MTW2622MLS",
+            "MTW2608DES"]
+
+        df = df[
+            ~df["Codice Progetto Nazionale"]
+            .astype(str)
+            .str.strip()
+            .isin(progetto_nazionale_esclusi)
+        ]
+
     
         # Distretto
     
@@ -273,7 +286,7 @@ def run():
         output.seek(0)
     
         st.download_button(
-            label="📥 Scarica Programmazione",
+            label="📥 Scarica programmazione",
             data=output,
             file_name="programmazione.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
