@@ -273,7 +273,7 @@ def run():
         output.seek(0)
     
         st.download_button(
-            label="📥 Scarica Excel",
+            label="📥 Scarica Programmazione",
             data=output,
             file_name="programmazione.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
