@@ -68,6 +68,7 @@ def run():
             "INSTALLAZIONE APPARATI CATALYST",
             "FTTC LA: PERMUTA+LA+INST PRODOT+OUTSOURCING",
             "FTTC-FTTE TZ:PERM SECONDARIA A DAC S INT",
+            "FTTC-FTTE TZ:PERM SECONDARIA A DAC S INT",
             "VGW POTS+ADSL PERMUTA",
             "VGW POTS PERMUTA"]
 
@@ -75,6 +76,34 @@ def run():
                     .astype(str)
                     .str.strip()
                     .isin(tipologie_escluse)
+        ]
+
+        # Esclusione WR Annullate
+
+        df = df[
+            df["Stato"]
+            .astype(str)
+            .str.strip()
+            != "50 - Annullata"
+        ]
+
+        # Esclusione WR per JobType
+
+        jobtype_esclusi = [
+            "ERCTZSDAC",
+            "ERLHNI-V-H",
+            "ERNHTZ--OP",
+            "ERNHTZ--PP",
+            "ERRARI-VGW",
+            "ERRGRI-VGW",
+            "ESDCATCL-R",
+            "ETHVCDNC"]
+
+        df = df[
+            ~df["JobType"]
+            .astype(str)
+            .str.strip()
+            .isin(jobtype_esclusi)
         ]
 
     
