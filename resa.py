@@ -115,6 +115,76 @@ def run():
             .isin(tipologie_escluse)
         ]
 
+        # -----------------------------------
+        # ESCLUSIONE WR ANNULLATE
+        # -----------------------------------
+
+        df_g = df_g[
+            df_g["Stato"]
+            .astype(str)
+            .str.strip()
+            != "50 - Annullata"
+        ]
+
+        df_c = df_c[
+            df_c["Stato"]
+            .astype(str)
+            .str.strip()
+            != "50 - Annullata"
+        ]
+
+        # -----------------------------------
+        # ESCLUSIONE WR PER JOBTYPE
+        # -----------------------------------
+
+        jobtype_esclusi = [
+            "ERCTZSDAC",
+            "ERLHNI-V-H",
+            "ERNHTZ--OP",
+            "ERNHTZ--PP",
+            "ERRARI-VGW",
+            "ERRGRI-VGW",
+            "ESDCATCL-R",
+            "ETHVCDNC"
+        ]
+
+        df_g = df_g[
+            ~df_g["JobType"]
+            .astype(str)
+            .str.strip()
+            .isin(jobtype_esclusi)
+        ]
+
+        df_c = df_c[
+            ~df_c["JobType"]
+            .astype(str)
+            .str.strip()
+            .isin(jobtype_esclusi)
+        ]
+
+        # -----------------------------------
+        # ESCLUSIONE WR PER CODICE PROGETTO NAZIONALE
+        # -----------------------------------
+
+        progetto_nazionale_esclusi = [
+            "MTW2622MLS",
+            "MTW2608DES"
+        ]
+
+        df_g = df_g[
+            ~df_g["Codice Progetto Nazionale"]
+            .astype(str)
+            .str.strip()
+            .isin(progetto_nazionale_esclusi)
+        ]
+
+        df_c = df_c[
+            ~df_c["Codice Progetto Nazionale"]
+            .astype(str)
+            .str.strip()
+            .isin(progetto_nazionale_esclusi)
+        ]
+
         df_g["Data Inizio Appuntamento"] = pd.to_datetime(
             df_g["Data Inizio Appuntamento"], errors="coerce"
         )
