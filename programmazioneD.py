@@ -68,6 +68,7 @@ def run():
             "INSTALLAZIONE APPARATI CATALYST",
             "FTTC LA: PERMUTA+LA+INST PRODOT+OUTSOURCING",
             "FTTC-FTTE TZ:PERM SECONDARIA A DAC S INT",
+            "FTTC-FTTE TZ:PERM SECONDARIA A DAC S INT",
             "VGW POTS+ADSL PERMUTA",
             "VGW POTS PERMUTA"]
 
@@ -75,6 +76,34 @@ def run():
                     .astype(str)
                     .str.strip()
                     .isin(tipologie_escluse)
+        ]
+
+        # Esclusione WR Annullate
+
+        df = df[
+            df["Stato"]
+            .astype(str)
+            .str.strip()
+            != "50 - Annullata"
+        ]
+
+        # Esclusione WR per JobType
+
+        jobtype_esclusi = [
+            "ERCTZSDAC",
+            "ERLHNI-V-H",
+            "ERNHTZ--OP",
+            "ERNHTZ--PP",
+            "ERRARI-VGW",
+            "ERRGRI-VGW",
+            "ESDCATCL-R",
+            "ETHVCDNC"]
+
+        df = df[
+            ~df["JobType"]
+            .astype(str)
+            .str.strip()
+            .isin(jobtype_esclusi)
         ]
 
     
@@ -247,6 +276,30 @@ def run():
             label="📥 Scarica Excel",
             data=output,
             file_name="programmazione.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+
+        # Export Excel dettaglio WR
+
+        output_dettaglio = BytesIO()
+
+        with pd.ExcelWriter(
+            output_dettaglio,
+            engine="xlsxwriter"
+        ) as writer:
+
+            df.to_excel(
+                writer,
+                index=False,
+                sheet_name="Dettaglio WR"
+            )
+
+        output_dettaglio.seek(0)
+
+        st.download_button(
+            label="📥 Scarica dettaglio WR",
+            data=output_dettaglio,
+            file_name="dettaglio_wr.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
     
