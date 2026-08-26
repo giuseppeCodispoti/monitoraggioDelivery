@@ -97,6 +97,11 @@ def run():
             "ERRARI-VGW",
             "ERRGRI-VGW",
             "ESDCATCL-R",
+            "MTW2622MLS",
+            "TLC26E9I",
+            "00BU62316K",
+            "TLC26BRKXB",
+            "MTW2608DES",
             "ETHVCDNC"]
 
         df = df[
