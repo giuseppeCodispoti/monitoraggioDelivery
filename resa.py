@@ -56,7 +56,7 @@ def run():
     col_sinistra, col_destra = st.columns([4, 1])
 
     with col_sinistra:
-        file_produzione = st.file_uploader("📂 Carica Produzione", type=["xlsx", "xls"])
+        file_produzione = st.file_uploader("📂 Carica Produzione: data appuntamento oggi e stato pratica tutte", type=["xlsx", "xls"])
 
     with col_destra:
         if os.path.exists(logo_path):
