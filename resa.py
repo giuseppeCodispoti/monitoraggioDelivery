@@ -557,13 +557,29 @@ def run():
                 c for c in pivot_ko.columns if c not in ("Risorsa", "Totale")
             ]
 
+            def colora_ko(val):
+                try:
+                    val = float(val)
+                    if val <= 0:
+                        return ""
+                    elif val == 1:
+                        return "background-color:#FFC7CE"
+                    elif val == 2:
+                        return "background-color:#FF8A80"
+                    elif val == 3:
+                        return "background-color:#FF5252;color:white"
+                    else:
+                        return "background-color:#B71C1C;color:white"
+                except Exception:
+                    return ""
+
             st.dataframe(
                 pivot_ko.style
                 .hide(axis="index")
                 .format({col: "{:.0f}" for col in colonne_causali + ["Totale"]})
                 .set_properties(**{"font-weight": "bold"}, subset=["Risorsa", "Totale"])
-                .background_gradient(
-                    cmap="Reds",
+                .map(
+                    colora_ko,
                     subset=colonne_causali
                 ),
                 use_container_width=True,
