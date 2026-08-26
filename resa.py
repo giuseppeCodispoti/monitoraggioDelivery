@@ -60,12 +60,12 @@ def run():
     
     with col_sinistra:
         file_giacenza = st.file_uploader(
-            "📂 Carica Giacenza",
+            "📂 Carica Giacenza ( deve essere la stessa usata per la programmazione)",
             type=["xlsx", "xls"]
         )
     
         file_chiusura = st.file_uploader(
-            "📂 Carica Chiusura",
+            "📂 Carica Chiusura ( stato pratica = TUTTE & data inizio appuntamento = oggi)",
             type=["xlsx", "xls"]
         )
     
@@ -168,6 +168,9 @@ def run():
 
         progetto_nazionale_esclusi = [
             "MTW2622MLS",
+            "TLC26E9I",
+            "00BU62316K",
+            "TLC26BRKXB",
             "MTW2608DES"
         ]
 
