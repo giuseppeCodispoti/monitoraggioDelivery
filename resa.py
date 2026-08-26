@@ -9,23 +9,20 @@ import pytz
 import os
 
 def run():
+
     st.set_page_config(
         page_title="Resa del Giorno",
         layout="wide"
     )
-    
+
     # ---------------------------------------
     # DATA E ORA
     # ---------------------------------------
-    
+
     rome_tz = pytz.timezone("Europe/Rome")
-    
     orario_locale = datetime.now(rome_tz)
-    
-    orario_caricamento = orario_locale.strftime(
-        "%d-%m-%Y ore %H:%M"
-    )
-    
+    orario_caricamento = orario_locale.strftime("%d-%m-%Y ore %H:%M")
+
     # ---------------------------------------
     # LOGO
     # ---------------------------------------
@@ -34,13 +31,13 @@ def run():
     # quel file non esiste e l'app va in crash all'avvio.
     # Soluzione: cerco un logo.png nella stessa cartella dello script; se non c'è,
     # semplicemente non mostro il logo invece di bloccare l'app.
-    
+
     logo_path = os.path.join(os.path.dirname(__file__), "logo.png")
-    
+
     # ---------------------------------------
     # TITOLO (centrato, in cima)
     # ---------------------------------------
-    
+
     st.markdown(
         f"""
         <h4 style='text-align:center;'>
@@ -51,37 +48,28 @@ def run():
         """,
         unsafe_allow_html=True
     )
-    
+
     # ---------------------------------------
     # UPLOAD (sinistra) + FOTO/LOGO (destra), affiancati
     # ---------------------------------------
-    
+
     col_sinistra, col_destra = st.columns([4, 1])
-    
+
     with col_sinistra:
-        file_giacenza = st.file_uploader(
-            "📂 Carica Giacenza ( deve essere la stessa usata per la programmazione)",
-            type=["xlsx", "xls"]
-        )
-    
-        file_chiusura = st.file_uploader(
-            "📂 Carica Chiusura ( stato pratica = TUTTE & data inizio appuntamento = oggi)",
-            type=["xlsx", "xls"]
-        )
-    
+        file_produzione = st.file_uploader("📂 Carica Produzione", type=["xlsx", "xls"])
+
     with col_destra:
         if os.path.exists(logo_path):
             logo = Image.open(logo_path)
             st.image(logo, use_container_width=True)
-    
+
     # ---------------------------------------
     # ELABORAZIONE
     # ---------------------------------------
-    
-    if file_giacenza is not None and file_chiusura is not None:
-    
-        df_g = pd.read_excel(file_giacenza)
-        df_c = pd.read_excel(file_chiusura)
+
+    if file_produzione is not None:
+
+        df = pd.read_excel(file_produzione)
 
         # -----------------------------------
         # ESCLUSIONE TIPOLOGIE LAVORO
@@ -101,15 +89,8 @@ def run():
             "VGW POTS PERMUTA"
         ]
 
-        df_g = df_g[
-            ~df_g["Tipologia Lavoro"]
-            .astype(str)
-            .str.strip()
-            .isin(tipologie_escluse)
-        ]
-
-        df_c = df_c[
-            ~df_c["Tipologia Lavoro"]
+        df = df[
+            ~df["Tipologia Lavoro"]
             .astype(str)
             .str.strip()
             .isin(tipologie_escluse)
@@ -119,15 +100,8 @@ def run():
         # ESCLUSIONE WR ANNULLATE
         # -----------------------------------
 
-        df_g = df_g[
-            df_g["Stato"]
-            .astype(str)
-            .str.strip()
-            != "50 - Annullata"
-        ]
-
-        df_c = df_c[
-            df_c["Stato"]
+        df = df[
+            df["Stato"]
             .astype(str)
             .str.strip()
             != "50 - Annullata"
@@ -148,15 +122,8 @@ def run():
             "ETHVCDNC"
         ]
 
-        df_g = df_g[
-            ~df_g["JobType"]
-            .astype(str)
-            .str.strip()
-            .isin(jobtype_esclusi)
-        ]
-
-        df_c = df_c[
-            ~df_c["JobType"]
+        df = df[
+            ~df["JobType"]
             .astype(str)
             .str.strip()
             .isin(jobtype_esclusi)
@@ -174,187 +141,143 @@ def run():
             "MTW2608DES"
         ]
 
-        df_g = df_g[
-            ~df_g["Codice Progetto Nazionale"]
+        df = df[
+            ~df["Codice Progetto Nazionale"]
             .astype(str)
             .str.strip()
             .isin(progetto_nazionale_esclusi)
         ]
 
-        df_c = df_c[
-            ~df_c["Codice Progetto Nazionale"]
-            .astype(str)
-            .str.strip()
-            .isin(progetto_nazionale_esclusi)
-        ]
-
-        df_g["Data Inizio Appuntamento"] = pd.to_datetime(
-            df_g["Data Inizio Appuntamento"], errors="coerce"
-        )
-        df_c["Data Inizio Appuntamento"] = pd.to_datetime(
-            df_c["Data Inizio Appuntamento"], errors="coerce"
-        )
-        data_riferimento = (
-            df_c["Data Inizio Appuntamento"]
-            .dt.date
-            .max()
+        df["Data Inizio Appuntamento"] = pd.to_datetime(
+            df["Data Inizio Appuntamento"], errors="coerce"
         )
 
-        df_g["Impresa"] = (
-            df_g["Impresa"]
+        data_riferimento = df["Data Inizio Appuntamento"].dt.date.max()
+
+        df["Impresa"] = (
+            df["Impresa"]
             .fillna("Sociale")
             .astype(str)
             .replace("nan", "Sociale")
         )
-        df_c["Impresa"] = (
-            df_c["Impresa"]
-            .fillna("Sociale")
-            .astype(str)
-            .replace("nan", "Sociale")
-        )
-    
+
         # -----------------------------------
         # COSTRUZIONE AT
         # -----------------------------------
-    
-        df_g["distretto"] = (
-            df_g["Codice Centrale"]
-            .astype(str)
-            .str[:3]
-        )
-    
-        df_g["AT"] = df_g["distretto"].map({
+
+        df["distretto"] = df["Codice Centrale"].astype(str).str[:3]
+
+        df["AT"] = df["distretto"].map({
             "964": "Bagnato",
             "965": "Votano",
             "966": "Bagnato"
         }).fillna("Carbone")
-    
-        df_c["distretto"] = (
-            df_c["Codice Centrale"]
-            .astype(str)
-            .str[:3]
-        )
-    
-        df_c["AT"] = df_c["distretto"].map({
-            "964": "Bagnato",
-            "965": "Votano",
-            "966": "Bagnato"
-        }).fillna("Carbone")
-    
+
         # -----------------------------------
         # NORMALIZZAZIONE
         # -----------------------------------
-    
-        df_g["Impresa"] = df_g["Impresa"].astype(str)
-        df_c["Impresa"] = df_c["Impresa"].astype(str)
-    
-        df_g["FTTH"] = df_g["FTTH"].astype(str)
-        df_c["FTTH"] = df_c["FTTH"].astype(str)
-    
+
+        df["Impresa"] = df["Impresa"].astype(str)
+        df["FTTH"] = df["FTTH"].astype(str).str.strip().str.upper()
+
         # -----------------------------------
         # PRODUTTIVE
         # -----------------------------------
-    
-        produttive = df_c[
-            df_c["Causale Chiusura"]
+
+        produttive = df[
+            df["Causale Chiusura"]
             .astype(str)
             .str.strip()
             .eq("COMPLWR")
         ]
-    
+
         # -----------------------------------
         # GIACENTI
         # -----------------------------------
-    
+
         giacenti = (
-            df_g.groupby(["AT", "Impresa"])
+            df.groupby(["AT", "Impresa"])
             .size()
             .reset_index(name="Giacenti")
         )
-    
+
         # -----------------------------------
         # CHIUSI PRODUTTIVI
         # -----------------------------------
-    
+
         chiusi = (
             produttive.groupby(["AT", "Impresa"])
             .size()
             .reset_index(name="Produttivi")
         )
-    
+
         # -----------------------------------
         # FTTH
         # -----------------------------------
-    
+
         g_ftth = (
-            df_g[df_g["FTTH"] == "True"]
+            df[df["FTTH"] == "TRUE"]
             .groupby(["AT", "Impresa"])
             .size()
             .reset_index(name="Giacenti FTTH")
         )
-    
+
         c_ftth = (
-            produttive[produttive["FTTH"] == "True"]
+            produttive[produttive["FTTH"] == "TRUE"]
             .groupby(["AT", "Impresa"])
             .size()
             .reset_index(name="Chiusi FTTH")
         )
-    
+
         # -----------------------------------
         # NO FTTH
         # -----------------------------------
-    
+
         g_no = (
-            df_g[df_g["FTTH"] == "False"]
+            df[df["FTTH"] == "FALSE"]
             .groupby(["AT", "Impresa"])
             .size()
             .reset_index(name="Giacenti NO FTTH")
         )
-    
+
         c_no = (
-            produttive[produttive["FTTH"] == "False"]
+            produttive[produttive["FTTH"] == "FALSE"]
             .groupby(["AT", "Impresa"])
             .size()
             .reset_index(name="Chiusi NO FTTH")
         )
-    
+
         # -----------------------------------
         # IN LAVORAZIONE
         # -----------------------------------
-    
+
         lavorazione = (
-            df_c[(
-                df_c["Stato"]
-                .astype(str)
-                .str.strip()
-                .eq("15 - In Lavorazione")
-            )
-            &
-            (df_c["Data Inizio Appuntamento"].dt.date == data_riferimento
-            )
+            df[
+                (df["Stato"].astype(str).str.strip().eq("15 - In Lavorazione"))
+                & (df["Data Inizio Appuntamento"].dt.date == data_riferimento)
             ]
             .groupby(["AT", "Impresa"])
             .size()
             .reset_index(name="In Lavorazione")
         )
-    
+
         # -----------------------------------
         # MERGE
         # -----------------------------------
-    
+
         report = giacenti.merge(chiusi, on=["AT", "Impresa"], how="left")
         report = report.merge(g_ftth, on=["AT", "Impresa"], how="left")
         report = report.merge(c_ftth, on=["AT", "Impresa"], how="left")
         report = report.merge(g_no, on=["AT", "Impresa"], how="left")
         report = report.merge(c_no, on=["AT", "Impresa"], how="left")
         report = report.merge(lavorazione, on=["AT", "Impresa"], how="left")
-    
+
         report = report.fillna(0)
-    
+
         # -----------------------------------
         # RESE
         # -----------------------------------
-    
+
         report["Resa Totale %"] = (
             report["Produttivi"] / report["Giacenti"].replace(0, np.nan) * 100
         ).round(1)
@@ -366,13 +289,13 @@ def run():
         report["Resa NO FTTH %"] = (
             report["Chiusi NO FTTH"] / report["Giacenti NO FTTH"].replace(0, np.nan) * 100
         ).round(1)
-    
+
         report = report.fillna(0)
-    
+
         # -----------------------------------
         # ORDINAMENTO
         # -----------------------------------
-    
+
         report = report[
             [
                 "AT",
@@ -385,25 +308,25 @@ def run():
                 "In Lavorazione"
             ]
         ]
-    
+
         report = report.sort_values(by=["AT", "Impresa"]).reset_index(drop=True)
-    
+
         # -----------------------------------
         # TOTALE FINALE
         # -----------------------------------
-    
+
         tot_ftth = (
             round(c_ftth["Chiusi FTTH"].sum() / g_ftth["Giacenti FTTH"].sum() * 100, 1)
             if not g_ftth.empty and g_ftth["Giacenti FTTH"].sum() > 0
             else 0
         )
-    
+
         tot_no_ftth = (
             round(c_no["Chiusi NO FTTH"].sum() / g_no["Giacenti NO FTTH"].sum() * 100, 1)
             if not g_no.empty and g_no["Giacenti NO FTTH"].sum() > 0
             else 0
         )
-    
+
         totale = pd.DataFrame(
             [{
                 "AT": "TOTALE",
@@ -419,46 +342,46 @@ def run():
                 "In Lavorazione": report["In Lavorazione"].sum()
             }]
         )
-    
+
         report = pd.concat([report, totale], ignore_index=True)
-    
+
         # Nasconde le ripetizioni della colonna "AT" per le righe con lo stesso distretto
         # (solo estetico, la riga TOTALE resta sempre visibile)
         mask_totale = report["AT"] == "TOTALE"
-    
+
         report.loc[~mask_totale, "AT"] = (
             report.loc[~mask_totale, "AT"]
             .mask(report.loc[~mask_totale, "AT"].duplicated(), "")
         )
-    
+
         # -----------------------------------
         # KPI
         # -----------------------------------
-    
+
         # NB: escludo la riga "TOTALE" dalla somma, perché è già essa stessa
         # la somma delle righe sopra: sommarla di nuovo raddoppierebbe i valori
         # (bug segnalato: KPI e Resa % risultavano il doppio del reale).
-        
+
         totale_giacenti = report.loc[~mask_totale, "Giacenti"].sum()
         totale_produttive = report.loc[~mask_totale, "Produttivi"].sum()
         totale_lavorazione = report.loc[~mask_totale, "In Lavorazione"].sum()
-    
+
         resa_generale = (
             round(totale_produttive / totale_giacenti * 100, 1)
             if totale_giacenti > 0 else 0
         )
-    
+
         c1, c2, c3, c4 = st.columns(4)
-    
+
         c1.metric("Giacenti", int(totale_giacenti))
         c2.metric("Produttive", int(totale_produttive))
         c3.metric("In Lav.", int(totale_lavorazione))
         c4.metric("Resa %", f"{resa_generale}%")
-    
+
         # -----------------------------------
         # COLORAZIONI
         # -----------------------------------
-    
+
         def colora_resa(val):
             try:
                 val = float(val)
@@ -470,11 +393,11 @@ def run():
                     return "background-color:#FFC7CE"
             except Exception:
                 return ""
-    
+
         st.subheader("📈 Resa per Risorsa")
-    
+
         report["Impresa"] = report["Impresa"].astype(str)
-    
+
         st.markdown(
             """<style>
             [data-testid="stDataFrame"] {
@@ -483,13 +406,13 @@ def run():
             """,
             unsafe_allow_html=True
         )
-    
+
         # -----------------------------------
         # TABELLA + GRAFICO ISTOGRAMMA AFFIANCATI
         # -----------------------------------
-    
+
         col_tabella, col_grafico = st.columns([2, 1])
-    
+
         with col_tabella:
             st.dataframe(
                 report.style
@@ -517,15 +440,13 @@ def run():
                     "Resa Totale %": st.column_config.NumberColumn("ResaTot. %", width=75),
                     "Resa FTTH %": st.column_config.NumberColumn("RESA FTTH %", width=90),
                     "Resa NO FTTH %": st.column_config.NumberColumn("RESA≠FTTH %", width=90),
-                    "In Lavorazione":  st.column_config.NumberColumn("In Lav.", width=60),
+                    "In Lavorazione": st.column_config.NumberColumn("In Lav.", width=60),
                 }
             )
-    
+
         with col_grafico:
             # Escludo la riga TOTALE
-            dati_grafico = report[
-                report["AT"] != "TOTALE"
-            ].copy()
+            dati_grafico = report[report["AT"] != "TOTALE"].copy()
 
             # Raggruppo SOLO per Impresa
             dati_grafico = (
@@ -540,22 +461,15 @@ def run():
             # Calcolo resa
             dati_grafico["Resa Totale %"] = (
                 dati_grafico["Produttivi"]
-                /
-                dati_grafico["Giacenti"].replace(0, np.nan)
+                / dati_grafico["Giacenti"].replace(0, np.nan)
                 * 100
             ).round(1)
 
             # Tolgo eventuali infiniti
-            dati_grafico = dati_grafico.replace(
-                [np.inf, -np.inf],
-                0
-            )
+            dati_grafico = dati_grafico.replace([np.inf, -np.inf], 0)
 
             # Ordino per resa
-            dati_grafico = dati_grafico.sort_values(
-                by="Resa Totale %",
-                ascending=True
-            )
+            dati_grafico = dati_grafico.sort_values(by="Resa Totale %", ascending=True)
 
             # Colori
             def colore_barra(val):
@@ -566,10 +480,7 @@ def run():
                 else:
                     return "#FFC7CE"
 
-            dati_grafico["Colore"] = (
-                dati_grafico["Resa Totale %"]
-                .apply(colore_barra)
-            )
+            dati_grafico["Colore"] = dati_grafico["Resa Totale %"].apply(colore_barra)
 
             fig = px.bar(
                 dati_grafico,
@@ -593,26 +504,91 @@ def run():
                 margin=dict(l=0, r=0, t=40, b=0)
             )
 
-            st.plotly_chart(
-                fig,
-                use_container_width=True
+            st.plotly_chart(fig, use_container_width=True)
+
+        # -----------------------------------
+        # KO FTTH (FTTH = SI, Causale Chiusura ≠ COMPLWR)
+        # -----------------------------------
+
+        st.subheader("❌ Dettaglio KO FTTH")
+
+        ko_ftth = df[
+            (df["FTTH"] == "TRUE")
+            & (df["Causale Chiusura"].notna())
+            & (
+                df["Causale Chiusura"]
+                .astype(str)
+                .str.strip()
+                != ""
             )
-    
+            & (
+                df["Causale Chiusura"]
+                .astype(str)
+                .str.strip()
+                != "COMPLWR"
+            )
+        ].copy()
+
+        if not ko_ftth.empty:
+
+            ko_ftth["Causale Chiusura"] = (
+                ko_ftth["Causale Chiusura"]
+                .astype(str)
+                .str.strip()
+            )
+
+            pivot_ko = pd.crosstab(
+                ko_ftth["Impresa"],
+                ko_ftth["Causale Chiusura"]
+            )
+
+            # Colonna Totale per risorsa
+            pivot_ko["Totale"] = pivot_ko.sum(axis=1)
+
+            # Ordino le risorse dal maggior numero di KO al minore
+            pivot_ko = pivot_ko.sort_values(by="Totale", ascending=False)
+
+            # Riga Totale per causale, in fondo
+            pivot_ko.loc["TOTALE"] = pivot_ko.sum(axis=0)
+
+            pivot_ko = pivot_ko.reset_index().rename(columns={"Impresa": "Risorsa"})
+
+            colonne_causali = [
+                c for c in pivot_ko.columns if c not in ("Risorsa", "Totale")
+            ]
+
+            st.dataframe(
+                pivot_ko.style
+                .hide(axis="index")
+                .format({col: "{:.0f}" for col in colonne_causali + ["Totale"]})
+                .set_properties(**{"font-weight": "bold"}, subset=["Risorsa", "Totale"])
+                .background_gradient(
+                    cmap="Reds",
+                    subset=colonne_causali
+                ),
+                use_container_width=True,
+                height=(len(pivot_ko) + 1) * 35 + 3
+            )
+
+        else:
+            st.info("Nessun KO FTTH presente nei dati caricati.")
+
         # -----------------------------------
         # EXCEL
         # -----------------------------------
-    
+
         output = BytesIO()
-    
+
         with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
             report.to_excel(writer, index=False, sheet_name="Resa")
-    
+            if not ko_ftth.empty:
+                pivot_ko.to_excel(writer, index=False, sheet_name="KO FTTH")
+
         output.seek(0)
-    
+
         st.download_button(
             label="📥 Scarica Excel",
             data=output,
             file_name="resa_giornaliera.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-    
