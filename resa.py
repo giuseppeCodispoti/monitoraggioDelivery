@@ -119,6 +119,7 @@ def run():
             "ERRARI-VGW",
             "ERRGRI-VGW",
             "ESDCATCL-R",
+            "OPI2619RSS",
             "ETHVCDNC"
         ]
 
@@ -138,6 +139,7 @@ def run():
             "TLC26E9I",
             "00BU62316K",
             "TLC26BRKXB",
+            "OPI2619RSS",
             "MTW2608DES"
         ]
 
@@ -190,6 +192,18 @@ def run():
             .str.strip()
             .eq("COMPLWR")
         ]
+        wr_chiuse = produttive.copy()
+        wr_produttive = produttive.copy()
+        wr_non_produttive = df[
+            (df["Causale Chiusura"].notna())
+            &
+            (
+                df["Causale Chiusura"].astype(str).str.strip()!= "")
+                &
+                (df["Causale Chiusura"].astype(str).str.strip()!= "COMPLWR")].copy()
+
+
+
 
         # -----------------------------------
         # GIACENTI
@@ -555,10 +569,26 @@ def run():
                 .str.strip()
             )
 
+            ko_ftth["Macro Causale"] = (ko_ftth["Causale Chiusura"].map(MACRO_CAUSALI).fillna(ko_ftth["Causale Chiusura"]))
+
             pivot_ko = pd.crosstab(
                 ko_ftth["Impresa"],
-                ko_ftth["Causale Chiusura"]
+                ko_ftth["Macro Causale"]
             )
+
+            sospesi = (df[
+                 (df["FTTH"] == "TRUE")
+                 &
+                 (
+                      df["Stato"]
+                      .astype(str)
+                      .str.strip() == "30 - Sospensione"
+                      )].groupby("Impresa").size())
+            pivot_ko["Sospesi"] = (
+                pivot_ko.index
+                .map(sospesi)
+                .fillna(0)
+                .astype(int))
 
             # Colonna Totale per risorsa
             pivot_ko["Totale"] = pivot_ko.sum(axis=1)
@@ -617,12 +647,43 @@ def run():
             report.to_excel(writer, index=False, sheet_name="Resa")
             if not ko_ftth.empty:
                 pivot_ko.to_excel(writer, index=False, sheet_name="KO FTTH")
+                wr_chiuse.to_excel(writer, index=False, sheet_name="WR Chiuse")
 
         output.seek(0)
 
+        
+        col1, col2 = st.columns(2)
+
+        with col1:
+            output_prod = BytesIO()
+            with pd.ExcelWriter(output_prod, engine="xlsxwriter") as writer:
+                wr_produttive.to_excel(
+                    writer,
+                    index=False,
+                    sheet_name="WR Produttive"
+                    )
+
+                output_prod.seek(0)
+
         st.download_button(
-            label="📥 Scarica Excel",
-            data=output,
-            file_name="resa_giornaliera.xlsx",
+            label="✅ Scarica WR Produttive",
+            data=output_prod,
+            file_name="wr_produttive.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
+            )
+        with col2:
+            output_ko = BytesIO()
+            with pd.ExcelWriter(output_ko, engine="xlsxwriter") as writer:
+                wr_non_produttive.to_excel(writer,index=False,
+                                           sheet_name="WR Non Produttive"
+                                           )
+                output_ko.seek(0)
+
+        st.download_button(
+            label="❌ Scarica WR Non Produttive",
+            data=output_ko,
+            file_name="wr_non_produttive.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+        
+
