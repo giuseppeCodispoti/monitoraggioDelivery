@@ -512,6 +512,24 @@ def run():
 
         st.subheader("❌ Dettaglio KO FTTH")
 
+        MACRO_CAUSALI = {"N43": "Non Reperibile",
+                         "N44": "Rinuncia",
+                         "C42": "Creation",
+                         "C43": "Creation",
+                         "C44": "Creation",
+                         "C48": "Creation",
+                         "A24": "Tubazione",
+                         "A14": "Tubazione",
+                         "N26": "Eccessiva Distanza",
+                         "A10": "Indirizzo Errato",
+                         "N52": "Centrale Errata",
+                         "EQ1": "Centrale Errata",
+                         "W50": "Opposizione",
+                         "W55": "Oneroso",
+                         "R87": "Rinuncia",
+                         "W913": "Ricaduta",
+                         "W914": "Ricaduta"}
+
         ko_ftth = df[
             (df["FTTH"] == "TRUE")
             & (df["Causale Chiusura"].notna())
