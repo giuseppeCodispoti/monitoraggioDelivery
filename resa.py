@@ -172,7 +172,7 @@ def run():
         df["AT"] = df["distretto"].map({
             "964": "Bagnato",
             "965": "Votano",
-            "966": "Bagnato"
+            "966": "Varamo"
         }).fillna("Carbone")
 
         # -----------------------------------
@@ -180,7 +180,16 @@ def run():
         # -----------------------------------
 
         df["Impresa"] = df["Impresa"].astype(str)
-        df["FTTH"] = df["FTTH"].astype(str).str.strip().str.upper()
+
+        # Pulizia robusta: tolgo qualsiasi carattere che non sia una lettera
+        # (spazi, simboli come ">", ecc.), non solo gli spazi. Cosi' valori
+        # tipo ">True", " true ", "TRUE " diventano tutti "TRUE".
+        df["FTTH"] = (
+            df["FTTH"]
+            .astype(str)
+            .str.replace(r"[^A-Za-z]", "", regex=True)
+            .str.upper()
+        )
 
         # -----------------------------------
         # PRODUTTIVE
@@ -195,6 +204,8 @@ def run():
         wr_chiuse = produttive.copy()
         wr_produttive = produttive.copy()
         wr_non_produttive = df[
+            (df["FTTH"] == "TRUE")
+            &
             (df["Causale Chiusura"].notna())
             &
             (
@@ -294,15 +305,15 @@ def run():
 
         report["Resa Totale %"] = (
             report["Produttivi"] / report["Giacenti"].replace(0, np.nan) * 100
-        ).round(1)
+        ).round(0)
 
         report["Resa FTTH %"] = (
             report["Chiusi FTTH"] / report["Giacenti FTTH"].replace(0, np.nan) * 100
-        ).round(1)
+        ).round(0)
 
         report["Resa NO FTTH %"] = (
             report["Chiusi NO FTTH"] / report["Giacenti NO FTTH"].replace(0, np.nan) * 100
-        ).round(1)
+        ).round(0)
 
         report = report.fillna(0)
 
@@ -434,10 +445,10 @@ def run():
                 .format({
                     "Produttivi": "{:.0f}",
                     "In Lavorazione": "{:.0f}",
-                    "Resa Totale %": "{:.1f}",
-                    "Resa FTTH %": lambda x: "" if pd.isna(x) else f"{x:.1f}",
+                    "Resa Totale %": "{:.0f}",
+                    "Resa FTTH %": lambda x: "" if pd.isna(x) else f"{x:.0f}",
                     "Giacenti": "{:.0f}",
-                    "Resa NO FTTH %": lambda x: "" if pd.isna(x) else f"{x:.1f}",
+                    "Resa NO FTTH %": lambda x: "" if pd.isna(x) else f"{x:.0f}",
                 })
                 .set_properties(**{"font-weight": "bold"})
                 .map(
@@ -593,17 +604,36 @@ def run():
             # Colonna Totale per risorsa
             pivot_ko["Totale"] = pivot_ko.sum(axis=1)
 
+            # Colonna % sul Totale KO complessivo (prima di aggiungere la riga TOTALE,
+            # cosi' la riga TOTALE finale sommera' correttamente le percentuali a 100%)
+            totale_ko_generale = pivot_ko["Totale"].sum()
+            pivot_ko["% sul Totale"] = (
+                pivot_ko["Totale"] / totale_ko_generale * 100
+            ).round(0)
+
             # Ordino le risorse dal maggior numero di KO al minore
             pivot_ko = pivot_ko.sort_values(by="Totale", ascending=False)
 
             # Riga Totale per causale, in fondo
             pivot_ko.loc["TOTALE"] = pivot_ko.sum(axis=0)
 
+            # La riga TOTALE è per definizione il 100% del totale KO.
+            # Sommare le percentuali già arrotondate riga per riga può dare
+            # 99% o 101% per via degli arrotondamenti indipendenti: qui la
+            # fisso esplicitamente a 100 invece di lasciare la somma.
+            pivot_ko.loc["TOTALE", "% sul Totale"] = 100
+
             pivot_ko = pivot_ko.reset_index().rename(columns={"Impresa": "Risorsa"})
 
             colonne_causali = [
-                c for c in pivot_ko.columns if c not in ("Risorsa", "Totale")
+                c for c in pivot_ko.columns
+                if c not in ("Risorsa", "Totale", "% sul Totale")
             ]
+
+            # Forzo i conteggi a numeri interi veri (non solo formattazione display),
+            # cosi' non compaiono piu' come "4.000000" nella tabella
+            for col in colonne_causali + ["Totale"]:
+                pivot_ko[col] = pivot_ko[col].round(0).astype(int)
 
             def colora_ko(val):
                 try:
@@ -624,14 +654,53 @@ def run():
             st.dataframe(
                 pivot_ko.style
                 .hide(axis="index")
-                .format({col: "{:.0f}" for col in colonne_causali + ["Totale"]})
-                .set_properties(**{"font-weight": "bold"}, subset=["Risorsa", "Totale"])
+                .format({col: "{:d}" for col in colonne_causali + ["Totale"]})
+                .format({"% sul Totale": "{:.0f}%"})
+                .set_properties(**{"font-weight": "bold"}, subset=["Risorsa", "Totale", "% sul Totale"])
                 .map(
                     colora_ko,
                     subset=colonne_causali
                 ),
-                use_container_width=True,
-                height=(len(pivot_ko) + 1) * 35 + 3
+                use_container_width=False,
+                height=(len(pivot_ko) + 1) * 35 + 3,
+                column_config={
+                    "Risorsa": st.column_config.TextColumn(width="medium"),
+                    **{
+                        col: st.column_config.NumberColumn(
+                            width=110 if col in ("Opposizione", "Indirizzo Errato") else "small"
+                        )
+                        for col in colonne_causali
+                    },
+                    "Totale": st.column_config.NumberColumn(width="small"),
+                    "% sul Totale": st.column_config.NumberColumn(width=100),
+                }
+            )
+
+            # -----------------------------------
+            # % PER CAUSALE (incidenza di ogni causale sul totale KO,
+            # es. Creation = 6 su 15 KO totali = 40%)
+            # -----------------------------------
+
+            riga_totale = pivot_ko[pivot_ko["Risorsa"] == "TOTALE"].iloc[0]
+
+            percentuali_causali = pd.DataFrame(
+                [{
+                    col: f"{round(riga_totale[col] / totale_ko_generale * 100)}%"
+                    for col in colonne_causali + ["Totale"]
+                }]
+            )
+
+            st.markdown("Incidenza % di ciascuna causale sul totale KO")
+
+            st.dataframe(
+                percentuali_causali,
+                hide_index=True,
+                use_container_width=False,
+                height=90,
+                column_config={
+                    col: st.column_config.TextColumn(width=160)
+                    for col in colonne_causali + ["Totale"]
+                }
             )
 
         else:
