@@ -136,6 +136,7 @@ def run():
         df["at"] = df["distretto"].map({
             "964": "Bagnato",
             "965": "Votano",
+            "966":"Varamo",
             "966": "Bagnato"
         }).fillna("Carbone")
     
